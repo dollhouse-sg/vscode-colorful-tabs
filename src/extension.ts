@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 
 const STORAGE_KEY = 'colorTabs.markers';
-const BADGES_PROMPTED_KEY = 'colorTabs.badgesPrompted';
 
 const MARKERS = [
   { label: '🔴 Red',    emoji: '🔴' },
@@ -78,39 +77,6 @@ export function activate(context: vscode.ExtensionContext): void {
       await provider.setMarker(target, chosen.emoji);
     })
   );
-
-  // Not awaited — must not block command registration
-  promptForBadgesIfNeeded(context);
-}
-
-async function promptForBadgesIfNeeded(context: vscode.ExtensionContext): Promise<void> {
-  if (context.globalState.get<boolean>(BADGES_PROMPTED_KEY)) {
-    return;
-  }
-
-  const badges = vscode.workspace.getConfiguration('workbench.editor.decorations').get<boolean>('badges');
-  if (badges !== false) {
-    return;
-  }
-
-  const choice = await vscode.window.showInformationMessage(
-    'Colorful Tabs: tab markers are hidden because editor tab badges are off. Enable them?',
-    'Enable',
-    'Not now'
-  );
-
-  // Write flag after dialog resolves so a crash before the dialog appears doesn't suppress future prompts
-  await context.globalState.update(BADGES_PROMPTED_KEY, true);
-
-  if (choice === 'Enable') {
-    const config = vscode.workspace.getConfiguration('workbench.editor.decorations');
-    const inspect = config.inspect<boolean>('badges');
-    // Prefer updating at workspace scope when a workspace override is the cause
-    const target = inspect?.workspaceValue !== undefined
-      ? vscode.ConfigurationTarget.Workspace
-      : vscode.ConfigurationTarget.Global;
-    await config.update('badges', true, target);
-  }
 }
 
 export function deactivate(): void {}
